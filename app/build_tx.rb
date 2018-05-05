@@ -116,12 +116,26 @@ def build2_tx
 
   dictionary = {}
   #Create dictionary for input
-  prev_out = {"hash" => @coinbase_transaction.transactionID, "n" => 1}
+  utxo = @coinbase_transaction
+  prev_out = {"hash" => utxo.transactionID, "n" => 1}
   dictionary["prev_out"] = prev_out
 
 
   #Create the transaction input:
   tx_in = BTCTransactionInput.alloc.initWithDictionary(dictionary)
+
+  puts "Made it here"
+  #Get the private key for the utxo to be signed
+  utxo_key = pay_key
+  puts "transaction_hash"
+  puts utxo.transactionHash
+  puts "end transaction hash"
+
+  signature = utxo_key.signatureForHash(utxo.transactionHash, hashType: 1)
+  puts "Made it here too"
+  signatureScript = BTCScript.alloc.initWithData(signature)
+  tx_in.signatureScript = signatureScript
+
   puts "Coinbase?"
   puts tx_in.isCoinbase
   puts "End coinbase"
@@ -137,6 +151,11 @@ def build2_tx
   @txin2_result.stringValue = BTCHexFromData(tx_in.data)
   @txid2_result.stringValue = transaction.transactionID
   @tx2_payload_result.stringValue = transaction.hex #gives the tx payload in hex
+
+
+  puts "Trans parsed"
+  puts transaction.dictionary
+  puts "Trans parsed end"
 
 
   parsed_transaction = BTCTransaction.alloc.initWithHex(transaction.hex)
