@@ -127,14 +127,72 @@ def build2_tx
   puts "Made it here"
   #Get the private key for the utxo to be signed
   utxo_key = pay_key
+  #Get utxo_key address hash
+  public_address_hash = utxo_key.compressedPublicKeyAddress
   puts "transaction_hash"
-  puts utxo.transactionHash
+  puts BTCHexFromData(utxo.transactionHash)
   puts "end transaction hash"
 
-  signature = utxo_key.signatureForHash(utxo.transactionHash, hashType: 1)
+
+  ###
+  #transaction hash will be the transaction (serialized form) with litte endian of hash type appended to it and then hashed 256.
+  ###
+
+  ###
+  #output script of the utxo we are spending
+  ###
+  output_script = utxo.outputs[0].script
+  puts "Output script"
+  puts output_script.string
+  puts "end Output"
+
+
+  # Error
+  #error = NSError.alloc.init
+
+  # Hash for siginging
+  hash_for_signing = utxo.signatureHashForScript(output_script, inputIndex: 0, hashType: SIGHASH_ALL, error: nil)
+
+  puts "Hash for signing"
+  puts BTCHexFromData(hash_for_signing)
+  puts "End Hash for signing"
+
+
+
+  signature_w_hash_type = utxo_key.signatureForHash(hash_for_signing, hashType: SIGHASH_ALL)
+  signature = utxo_key.signatureForHash(hash_for_signing)
+  signature_hex = BTCHexFromData(signature)
+  puts "signature hex"
+  puts signature_hex
+  puts "end signature hex"
+
+  valid_sig = utxo_key.isValidSignature(signature, hash: hash_for_signing)
+  puts "Valid Sig?"
+  puts valid_sig
+  puts "End Valid Sig"
+
   puts "Made it here too"
-  signatureScript = BTCScript.alloc.initWithData(signature)
+
+
+  ##########################  Need to look at this line.  The script is not making a signature script.  Seems like you might need to 'build' the script by apending the signature with the public key address.
+  # create a new script
+  # append the signature data
+  # append the compressed public key address
+  signatureScript = BTCScript.alloc.init
+  signatureScript.appendData(signature)
+  signatureScript.appendData(utxo_key.compressedPublicKey)
+  ##########################
   tx_in.signatureScript = signatureScript
+  signatureScriptHex = tx_in.signatureScript
+
+  puts "Signature Script from BTCScript:"
+  puts signatureScript.hex
+  puts "end Signature Script from BTCScipt"
+
+
+  puts "Signature Script:"
+  puts signatureScriptHex.hex
+  puts "end Signature Script"
 
   puts "Coinbase?"
   puts tx_in.isCoinbase
